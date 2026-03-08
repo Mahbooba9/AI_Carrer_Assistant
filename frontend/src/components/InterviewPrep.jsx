@@ -288,7 +288,9 @@ export default function InterviewPrep() {
             </button>
             <h1 className="text-3xl font-bold text-gray-800">📖 {selectedTopic?.topic}</h1>
             <p className="text-gray-600">
-              {selectedTopic?.difficulty} Level | Role: {role}
+              {selectedTopic?.difficulty && selectedTopic.difficulty !== 'General' && (
+                <>{selectedTopic.difficulty} Level | </>
+              )}Role: {role}
             </p>
           </div>
         </header>
@@ -360,25 +362,42 @@ export default function InterviewPrep() {
         <main className="max-w-7xl mx-auto px-6 py-12">
           {topics && topics.length > 0 ? (
             <div className="space-y-8">
-              {topics.map((levelGroup, idx) => (
-                <div key={idx} className="card">
-                  <h2 className="text-2xl font-bold mb-4 text-blue-600">{levelGroup.level} Level</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {levelGroup.topics &&
-                      levelGroup.topics.map((topic, tIdx) => (
-                        <button
-                          key={tIdx}
-                          onClick={() => handleSelectTopic(topic, levelGroup.level)}
-                          disabled={loading}
-                          className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
-                        >
-                          <p className="font-semibold text-gray-800">{topic}</p>
-                          <p className="text-sm text-gray-500">{levelGroup.level} difficulty</p>
-                        </button>
-                      ))}
-                  </div>
+              {typeof topics[0] === 'string' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {topics.map((topic, tIdx) => (
+                    <button
+                      key={tIdx}
+                      onClick={() => handleSelectTopic(topic, 'General')}
+                      disabled={loading}
+                      className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
+                    >
+                      <p className="font-semibold text-gray-800">{topic}</p>
+                    </button>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-8">
+                  {topics.map((levelGroup, idx) => (
+                    <div key={idx} className="card">
+                      <h2 className="text-2xl font-bold mb-4 text-blue-600">{levelGroup.level} Level</h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {levelGroup.topics &&
+                          levelGroup.topics.map((topic, tIdx) => (
+                            <button
+                              key={tIdx}
+                              onClick={() => handleSelectTopic(topic, levelGroup.level)}
+                              disabled={loading}
+                              className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
+                            >
+                              <p className="font-semibold text-gray-800">{topic}</p>
+                              <p className="text-sm text-gray-500">{levelGroup.level} difficulty</p>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center text-gray-500 py-12">

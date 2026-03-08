@@ -1,4 +1,6 @@
-const { generateContent } = require('../utils/groqService');
+const ChatMessage = require('../models/ChatMessage');
+const { generateContent: generateGroqContent } = require('../utils/groqService');
+const { generateContent: generateOpenRouterContent } = require('../utils/openRouterService');
 
 const RESTRICTED_TOPICS = ['movie', 'film', 'actor', 'actress', 'cricket', 'sports', 'game', 'politics', 'celebrity', 'entertainment'];
 
@@ -10,16 +12,21 @@ const isCareerRelated = (question) => {
 const generateMockResponse = (question) => {
   const lowerQuestion = question.toLowerCase();
   if (lowerQuestion.includes('resume')) {
-    return 'To improve your resume: 1) Add quantifiable achievements with metrics 2) Use action verbs (Developed, Implemented, Led) 3) Tailor to job descriptions 4) Include keywords 5) Keep it concise. Want role-specific tips?';
+    return 'Resume improvement tips: 1) Start with a strong summary highlighting your key achievements 2) Use quantifiable metrics (e.g., "Increased sales by 30%") 3) Tailor keywords to match job descriptions 4) Keep it to 1-2 pages 5) Include relevant certifications and projects. Use our Resume Improver tool for AI-powered suggestions!';
   }
   if (lowerQuestion.includes('interview')) {
-    return 'Interview tips: 1) Practice STAR method for behavioral questions 2) Research the company 3) Practice technical problems 4) Get good sleep before 5) Mock interview with friends. Which role are you preparing for?';
+    return 'Interview preparation: 1) Research the company and role thoroughly 2) Practice the STAR method for behavioral questions 3) Prepare technical questions based on your field 4) Have thoughtful questions ready for the interviewer 5) Practice with mock interviews. Check out our Interview Prep section for role-specific topics and quizzes!';
   }
-  if (lowerQuestion.includes('job')) {
-    return 'Job search tips: 1) Tailor resume/cover letter 2) Use LinkedIn actively 3) Network 4) Apply to multiple positions daily 5) Follow up 6) Consider recruiters. What field interests you?';
+  if (lowerQuestion.includes('job') || lowerQuestion.includes('search')) {
+    return 'Job search strategies: 1) Update your LinkedIn profile and network actively 2) Customize applications for each role 3) Use job boards, company websites, and recruiters 4) Follow up on applications 5) Consider informational interviews. Our Job Search tool can help you find relevant positions!';
   }
-  return 'I can help with resume tips, interview prep, job search, and career growth. What would you like to know?';
-};
+  if (lowerQuestion.includes('career') || lowerQuestion.includes('growth')) {
+    return 'Career development advice: 1) Set clear goals and create a development plan 2) Seek mentorship and feedback 3) Continuously learn new skills 4) Build a professional network 5) Track your achievements. What specific aspect of career growth interests you?';
+  }
+  if (lowerQuestion.includes('salary') || lowerQuestion.includes('negotiate')) {
+    return 'Salary negotiation tips: 1) Research market rates for your role and location 2) Highlight your achievements and value 3) Practice your pitch 4) Consider total compensation package 5) Be prepared to walk away if needed. Know your worth!';
+  }
+  return 'I\'m here to help with career development! I can assist with resume writing, interview preparation, job search strategies, salary negotiation, and professional growth. What specific career topic would you like to discuss?';
 };
 
 const askBot = async (req, res) => {
@@ -40,33 +47,79 @@ const askBot = async (req, res) => {
       });
     }
 
-    const prompt = `You are a helpful and professional career coach bot. A user is asking: "${question}"
-    
-Please provide:
-1. A concise and practical answer
-2. Actionable advice if applicable
-3. Tips or best practices
-4. Resources or next steps if needed
+    // Get recent conversation history (last 5 messages)
+    const recentMessages = await ChatMessage.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(5)
+      .sort({ timestamp: 1 }); // Re-sort to chronological order
 
-Keep the response professional, helpful, and focused on career development, job search, resume writing, interview preparation, and professional growth.`;
+    // Build conversation context
+    let conversationContext = '';
+    if (recentMessages.length > 0) {
+      conversationContext = '\n\nRecent conversation:\n' +
+        recentMessages.map(msg => `User: ${msg.question}\nAssistant: ${msg.answer}`).join('\n\n');
+    }
+
+    const prompt = `You are an expert career coach and professional development advisor. You have access to current industry knowledge and can provide detailed, practical advice.
+
+Current question: "${question}"${conversationContext}
+
+Provide a comprehensive, helpful response that:
+1. Directly addresses the user's question
+2. Includes specific, actionable advice
+3. References relevant industry trends or best practices when applicable
+4. Offers follow-up questions or next steps
+5. Maintains conversation continuity if this is part of an ongoing discussion
+
+Keep responses engaging, professional, and focused on career advancement. Be specific and provide real value.`;
 
     let answer;
     try {
-      answer = await generateContent(prompt);
+      answer = await generateOpenRouterContent(prompt);
     } catch (apiError) {
-      console.error('Groq API Error:', apiError.message);
-      answer = generateMockResponse(question);
+      console.error('OpenRouter API Error:', apiError.message);
+      try {
+        answer = await generateGroqContent(prompt);
+      } catch (groqError) {
+        console.error('Groq API Error:', groqError.message);
+        answer = generateMockResponse(question);
+      }
     }
+
+    // Save the conversation to database
+    const chatMessage = await ChatMessage.create({
+      userId,
+      question,
+      answer,
+      isCareerRelated: true,
+    });
 
     res.json({
       question,
       answer,
       isCareerRelated: true,
-      timestamp: new Date(),
+      timestamp: chatMessage.timestamp,
+      messageId: chatMessage._id,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { askBot };
+const getChatHistory = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const messages = await ChatMessage.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .sort({ timestamp: 1 }); // Return in chronological order
+
+    res.json({ messages });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { askBot, getChatHistory };

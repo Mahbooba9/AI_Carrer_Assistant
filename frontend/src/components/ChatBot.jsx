@@ -3,16 +3,10 @@ import { chatAPI } from '../services/api';
 
 export default function ChatBot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: 'bot',
-      text: 'Hi! 👋 I\'m your AI Career Assistant. Ask me anything about resumes, jobs, interviews, or career development!',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -23,19 +17,69 @@ export default function ChatBot() {
     scrollToBottom();
   }, [messages]);
 
+  // Load chat history when chat opens
+  useEffect(() => {
+    if (isOpen && !historyLoaded) {
+      loadChatHistory();
+    }
+  }, [isOpen, historyLoaded]);
+
+  const loadChatHistory = async () => {
+    try {
+      const response = await chatAPI.getHistory();
+      const historyMessages = response.data.messages.map((msg, index) => ({
+        id: `history-${index}`,
+        sender: 'user',
+        text: msg.question,
+        timestamp: new Date(msg.timestamp),
+      })).concat(response.data.messages.map((msg, index) => ({
+        id: `history-bot-${index}`,
+        sender: 'bot',
+        text: msg.answer,
+        timestamp: new Date(msg.timestamp),
+        isCareerRelated: msg.isCareerRelated,
+      })));
+
+      // Sort by timestamp and add welcome message if no history
+      const sortedMessages = historyMessages.sort((a, b) => a.timestamp - b.timestamp);
+      
+      if (sortedMessages.length === 0) {
+        sortedMessages.push({
+          id: 1,
+          sender: 'bot',
+          text: 'Hi! 👋 I\'m your AI Career Assistant. Ask me anything about resumes, jobs, interviews, or career development!',
+          timestamp: new Date(),
+        });
+      }
+
+      setMessages(sortedMessages);
+      setHistoryLoaded(true);
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      // Fallback to default message
+      setMessages([{
+        id: 1,
+        sender: 'bot',
+        text: 'Hi! 👋 I\'m your AI Career Assistant. Ask me anything about resumes, jobs, interviews, or career development!',
+        timestamp: new Date(),
+      }]);
+      setHistoryLoaded(true);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
     // Add user message
     const userMessage = {
-      id: messages.length + 1,
+      id: `user-${Date.now()}`,
       sender: 'user',
       text: inputValue,
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setLoading(true);
 
@@ -43,7 +87,7 @@ export default function ChatBot() {
       const response = await chatAPI.ask(inputValue);
 
       const botMessage = {
-        id: messages.length + 2,
+        id: `bot-${Date.now()}`,
         sender: 'bot',
         text: response.data.answer,
         timestamp: new Date(),
@@ -53,7 +97,7 @@ export default function ChatBot() {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       const errorMessage = {
-        id: messages.length + 2,
+        id: `error-${Date.now()}`,
         sender: 'bot',
         text: `Sorry, I encountered an error: ${error.response?.data?.message || error.message}`,
         timestamp: new Date(),

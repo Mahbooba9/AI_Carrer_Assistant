@@ -4,10 +4,34 @@ const { generateContent: generateOpenRouterContent } = require('../utils/openRou
 
 const getMockTopics = (role) => {
   const topicMap = {
-    'Software Engineer': ['Data Structures & Algorithms', 'System Design', 'Database Design', 'API Development', 'OOP Concepts'],
-    'Product Manager': ['Product Strategy', 'Market Analysis', 'User Interviews', 'Metrics & Analytics', 'Roadmapping'],
-    'Data Scientist': ['Machine Learning Basics', 'Statistics & Probability', 'Data Preprocessing', 'Model Evaluation', 'Python/SQL'],
-    'DevOps Engineer': ['CI/CD Pipelines', 'Kubernetes', 'Docker', 'Cloud Infrastructure', 'Monitoring & Logging'],
+    'Software Engineer': [
+      'Database Management Systems (DBMS)',
+      'Computer Networks',
+      'Operating Systems',
+      'Object Oriented Programming (OOP)',
+      'Data Structures & Algorithms'
+    ],
+    'Product Manager': [
+      'Product Strategy',
+      'Market Analysis',
+      'User Interviews',
+      'Metrics & Analytics',
+      'Roadmapping'
+    ],
+    'Data Scientist': [
+      'Machine Learning Basics',
+      'Statistics & Probability',
+      'Data Preprocessing',
+      'Model Evaluation',
+      'Python/SQL'
+    ],
+    'DevOps Engineer': [
+      'CI/CD Pipelines',
+      'Kubernetes',
+      'Docker',
+      'Cloud Infrastructure',
+      'Monitoring & Logging'
+    ],
   };
   
   return topicMap[role] || ['Technical Skills', 'Problem Solving', 'Communication', 'Project Management', 'Teamwork'];
@@ -21,8 +45,9 @@ const generateInterviewTopics = async (req, res) => {
       return res.status(400).json({ message: 'Role is required' });
     }
 
-    const prompt = `Generate 5-7 relevant interview topics for a ${role} position. 
-Provide them as a JSON array of strings, like: ["Topic 1", "Topic 2", ...]`;
+    const prompt = `Generate 5-7 key subject areas or technical topics that are essential for a ${role} position interview preparation. Focus on core subjects like DBMS, Computer Networks, Operating Systems, OOP, Data Structures, etc. for technical roles, or relevant business/marketing topics for business roles.
+
+Provide them as a JSON array of strings, like: ["DBMS", "Computer Networks", "Operating Systems", "OOP", "Data Structures & Algorithms"]`;
 
     let topics = [];
     try {
@@ -51,14 +76,15 @@ const generateTopicContent = async (req, res) => {
       return res.status(400).json({ message: 'Topic and role are required' });
     }
 
-    const prompt = `Explain the topic "${topic}" in the context of a ${role} position interview preparation. 
-Provide a clear, detailed explanation covering:
-1. What it is
-2. Why it's important for ${role}
-3. Key concepts and subtopics
-4. Common interview questions related to it
-5. How to prepare for it
-Make sure every concept is explained clearly and comprehensively.`;
+    const prompt = `Create a comprehensive, structured overview of the topic "${topic}" for someone preparing for a ${role} interview.
+Include the following sections with detail:
+1. Definition and core concepts
+2. Importance of this topic for a ${role} role
+3. Key subtopics or areas to master
+4. Common interview questions (with example answers/high‑level approaches)
+5. Practical preparation tips or exercises
+6. Real world examples or scenarios where it matters
+Use clear prose, headings, bullet points where appropriate, and aim for complete, efficient coverage.`;
 
     let content;
     try {

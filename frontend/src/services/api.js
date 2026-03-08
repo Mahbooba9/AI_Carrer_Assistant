@@ -54,6 +54,7 @@ export const interviewAPI = {
 
 export const chatAPI = {
   ask: (question) => api.post('/chat/ask', { question }),
+  getHistory: () => api.get('/chat/history'),
 };
 
 export default api;
