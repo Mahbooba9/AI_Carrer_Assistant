@@ -16,7 +16,7 @@ export default function JobSearch() {
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'https://ai-carrer-assistant.onrender.com/api';
 
   const handleSearch = async (e) => {
     e.preventDefault();

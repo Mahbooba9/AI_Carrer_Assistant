@@ -11,7 +11,7 @@ export default function ResumeImprover() {
   const [showJDUpload, setShowJDUpload] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'https://ai-carrer-assistant.onrender.com/api';
 
   const handleImprove = async (e) => {
     e.preventDefault();
