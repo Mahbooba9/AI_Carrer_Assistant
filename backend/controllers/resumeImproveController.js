@@ -74,7 +74,8 @@ Return ONLY the JSON.`;
 
     let scannerResults;
     try {
-      const resultText = await generateContent(prompt);
+      const contents = [{ role: 'user', parts: [{ text: prompt }] }];
+      const resultText = await generateContent(contents);
       // Clean resultText case there are markdown backticks
       const cleanedJson = resultText.replace(/```json|```/g, '').trim();
       scannerResults = JSON.parse(cleanedJson);

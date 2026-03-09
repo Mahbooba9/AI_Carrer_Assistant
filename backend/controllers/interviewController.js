@@ -60,7 +60,8 @@ const generateInterviewTopics = async (req, res) => {
 
     let topics = [];
     try {
-      const topicsText = await generateGroqContent(prompt);
+      const messages = [{ role: 'user', content: prompt }];
+      const topicsText = await generateGroqContent(messages);
       const jsonMatch = topicsText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         topics = JSON.parse(jsonMatch[0]);
@@ -101,7 +102,8 @@ const generateTopicContent = async (req, res) => {
 
     let content;
     try {
-      content = await generateOpenRouterContent(prompt);
+      const messages = [{ role: 'user', content: prompt }];
+      content = await generateOpenRouterContent(messages);
     } catch (apiError) {
       console.error('API Error:', apiError.message);
       content = `**${topic} for ${role}**\n\nFallback: Extensive content generation failed. Please try again. ${topic} involves understanding the fundamentals of ${role} requirements.`;
@@ -134,7 +136,8 @@ const generateQuiz = async (req, res) => {
 
     let questions = [];
     try {
-      const quizData = await generateGroqContent(prompt);
+      const messages = [{ role: 'user', content: prompt }];
+      const quizData = await generateGroqContent(messages);
       questions = parseQuizData(quizData);
     } catch (apiError) {
       console.error('API Error:', apiError.message);
@@ -181,7 +184,8 @@ const submitQuiz = async (req, res) => {
 
     let improvementSuggestions = "Keep practicing and review the core concepts of " + quiz.role;
     try {
-      improvementSuggestions = await generateGroqContent(feedbackPrompt);
+      const messages = [{ role: 'user', content: feedbackPrompt }];
+      improvementSuggestions = await generateGroqContent(messages);
     } catch (apiError) {
       console.error('Feedback Gen Error:', apiError);
     }
