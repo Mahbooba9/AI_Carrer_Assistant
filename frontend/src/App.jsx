@@ -15,6 +15,19 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(!!localStorage.getItem('token'));
+
+  // Update auth state periodically to handle login/logout
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsAuthenticated(!!localStorage.getItem('token'));
+    };
+    
+    // Check every 1 second (simple approach for now)
+    const interval = setInterval(checkAuth, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
@@ -62,7 +75,7 @@ export default function App() {
         />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
-      {true && <ChatBot />}
+      {isAuthenticated && <ChatBot />}
     </BrowserRouter>
   );
 }
