@@ -47,40 +47,54 @@ const improveResumeWithJD = async (req, res) => {
     }
 
     // Generate improvements based on resume and JD
-    const prompt = jdText
-      ? `I have a resume and a job description. Please analyze them and provide:
-1. Gap Analysis - Skills missing in the resume that are required in the JD
-2. Matching Skills - Skills from the resume that match the JD requirements
-3. Improvement Suggestions - Specific bullet points to add/modify in the resume
-4. Priority Areas - Top 3 areas to focus on to match the JD
-5. Keywords to Add - Important keywords from JD to include in resume
+    const prompt = `You are an expert ATS (Applicant Tracking System) Scanner and Career Strategist. 
+Analyze the provided resume against the ${role ? `target role "${role}"` : 'job description'}.
 
-Resume:
+Resume Content:
 ${resume.resumeText}
 
-Job Description:
-${jdText}`
-      : `I have a resume and want to apply for a ${role} position. 
-Here's my resume:
-${resume.resumeText}
+${jdText ? `Job Description:
+${jdText}` : ''}
 
-Please provide:
-1. Missing skills I should highlight or develop
-2. Improved bullet points for my resume based on the ${role} role
-3. Key areas I should focus on to be competitive for this role
-4. Tips to make my resume stand out`;
+Provide your analysis in **STRICT JSON format** with the following keys:
+{
+  "matchPercentage": (number between 0-100),
+  "matchSummary": (2-3 sentences max summarizing the fit),
+  "matchingSkills": [array of skills found in both resume and requirements],
+  "missingTechnicalSkills": [array of key technical skills missing],
+  "missingSoftSkills": [array of soft skills missing],
+  "missingKeywords": [
+    {"keyword": "example", "reason": "why it is critical"}
+  ],
+  "educationMatch": (short statement on qualification alignment),
+  "improvementSummary": (detailed markdown bullet points with 3-4 strategic advice items)
+}
 
-    let improvements;
+Return ONLY the JSON.`;
+
+    let scannerResults;
     try {
-      improvements = await generateContent(prompt);
+      const resultText = await generateContent(prompt);
+      // Clean resultText case there are markdown backticks
+      const cleanedJson = resultText.replace(/```json|```/g, '').trim();
+      scannerResults = JSON.parse(cleanedJson);
     } catch (apiError) {
-      console.error('Gemini API Error:', apiError.message);
-      improvements = getMockImprovements(role, !!jdText);
+      console.error('Gemini API/Parsing Error:', apiError.message);
+      scannerResults = {
+        matchPercentage: 70,
+        matchSummary: "Resume shows good alignment with core requirements but lacks some specific keywords.",
+        matchingSkills: resume.extractedSkills || ["Javascript", "React"],
+        missingTechnicalSkills: ["Docker", "Kubernetes"],
+        missingSoftSkills: ["Leadership"],
+        missingKeywords: [{"keyword": "CI/CD", "reason": "Crucial for modern dev workflows"}],
+        educationMatch: "Education aligns with industry standards.",
+        improvementSummary: "1. Quantify achievements\n2. Add modern cloud stacks\n3. Proofread for industry keywords."
+      };
     }
 
     res.json({
       role,
-      improvements,
+      scannerResults,
       currentSkills: resume.extractedSkills,
       jdProvided: !!jdText,
     });

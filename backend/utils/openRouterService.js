@@ -3,18 +3,13 @@ const axios = require('axios');
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
-const generateContent = async (prompt, model = 'anthropic/claude-3-haiku') => {
+const generateContent = async (messages, model = 'anthropic/claude-3-haiku') => {
   try {
     const response = await axios.post(
       OPENROUTER_API_URL,
       {
         model,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
+        messages,
         max_tokens: 1000,
       },
       {

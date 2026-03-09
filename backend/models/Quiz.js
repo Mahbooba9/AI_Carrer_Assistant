@@ -23,6 +23,9 @@ const quizSchema = new mongoose.Schema({
     correctAnswer: String,
     userAnswer: String,
   }],
+  improvementSuggestions: {
+    type: String,
+  },
   submittedAt: {
     type: Date,
     default: Date.now,

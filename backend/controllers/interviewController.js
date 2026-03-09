@@ -45,17 +45,27 @@ const generateInterviewTopics = async (req, res) => {
       return res.status(400).json({ message: 'Role is required' });
     }
 
-    const prompt = `Generate 5-7 key subject areas or technical topics that are essential for a ${role} position interview preparation. Focus on core subjects like DBMS, Computer Networks, Operating Systems, OOP, Data Structures, etc. for technical roles, or relevant business/marketing topics for business roles.
+    const seKeywords = ['software', 'developer', 'engineer', 'frontend', 'backend', 'fullstack', 'coder', 'programming'];
+    const isSERole = seKeywords.some(kw => role.toLowerCase().includes(kw));
 
-Provide them as a JSON array of strings, like: ["DBMS", "Computer Networks", "Operating Systems", "OOP", "Data Structures & Algorithms"]`;
+    const prompt = `Generate 5-7 key foundational subject areas or technical topics that are essential for a ${role} position interview preparation. 
+    ${isSERole ? `As this is a software-related role, you MUST include core CS subjects:
+    - Data Structures and Algorithms (DSA)
+    - Database Management Systems (DBMS)
+    - Operating Systems (OS)
+    - Computer Networks (CN)
+    - Object-Oriented Programming (OOP)` : 'Focus on core subjects or industry-standard domains for this role.'}
+    
+    Provide them as a JSON array of strings, like: ["DBMS", "Computer Networks", "Operating Systems", "OOP", "Data Structures & Algorithms"]`;
 
     let topics = [];
     try {
       const topicsText = await generateGroqContent(prompt);
-      try {
-        topics = JSON.parse(topicsText);
-      } catch {
-        topics = topicsText.split('\n').filter(t => t.trim()).slice(0, 7);
+      const jsonMatch = topicsText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        topics = JSON.parse(jsonMatch[0]);
+      } else {
+        topics = topicsText.split('\n').filter(t => t.trim().length > 3).slice(0, 7);
       }
     } catch (apiError) {
       console.error('API Error:', apiError.message);
@@ -76,22 +86,25 @@ const generateTopicContent = async (req, res) => {
       return res.status(400).json({ message: 'Topic and role are required' });
     }
 
-    const prompt = `Create a comprehensive, structured overview of the topic "${topic}" for someone preparing for a ${role} interview.
-Include the following sections with detail:
-1. Definition and core concepts
-2. Importance of this topic for a ${role} role
-3. Key subtopics or areas to master
-4. Common interview questions (with example answers/high‑level approaches)
-5. Practical preparation tips or exercises
-6. Real world examples or scenarios where it matters
-Use clear prose, headings, bullet points where appropriate, and aim for complete, efficient coverage.`;
+    const prompt = `Create an exhaustive, "A to Z" comprehensive guide for the topic "${topic}" for a ${role} candidate. 
+    The guide must cover EVERYTHING from basic definitions to highly advanced concepts.
+    
+    Structure it exactly as follows:
+    1. **Fundamental Overview**: Basic definition and core principles.
+    2. **Core Concepts (A to Z)**: Detailed breakdown of all major sub-topics related to ${topic}. Explain them clearly and deeply.
+    3. **Implementation & Practicality**: How this is used in real-world ${role} scenarios.
+    4. **Advanced Scenarios**: Edge cases, optimization, and complex problem-solving related to ${topic}.
+    5. **Top 50 Interview Questions**: List 50 critical interview questions (categorized by difficulty: Basic, Intermediate, Advanced) that could be asked about ${topic}. Provide high-level hints/key points for the answers.
+    6. **Preparation Checklist**: A step-by-step guide to mastering this topic.
+
+    Use professional markdown, clear headings, and be extremely detailed. This should be the only resource the candidate needs for this topic.`;
 
     let content;
     try {
       content = await generateOpenRouterContent(prompt);
     } catch (apiError) {
       console.error('API Error:', apiError.message);
-      content = `**${topic} for ${role}**\n\n${topic} is an important concept in ${role} interviews. Focus on understanding the fundamentals, practicing with examples, and being able to explain your thought process clearly. Key areas to cover include core concepts, real-world applications, and common challenges. Practice explaining this topic in simple terms and provide examples from your experience.`;
+      content = `**${topic} for ${role}**\n\nFallback: Extensive content generation failed. Please try again. ${topic} involves understanding the fundamentals of ${role} requirements.`;
     }
 
     res.json({ content, topic, role });
@@ -102,18 +115,22 @@ Use clear prose, headings, bullet points where appropriate, and aim for complete
 
 const generateQuiz = async (req, res) => {
   try {
-    const { role } = req.body;
+    const { role, topic, content } = req.body;
 
     if (!role) {
       return res.status(400).json({ message: 'Role is required' });
     }
 
-    const prompt = `Generate a quiz with 5 multiple choice questions for a ${role} interview. 
-For each question, provide:
-- Question text
-- 4 options (A, B, C, D)
-- Correct answer
-Format as JSON array with objects containing: {question, options: [a,b,c,d], correctAnswer}`;
+    const context = content ? `based on this specific content: ${content.substring(0, 2000)}` : `for the topic ${topic || 'Interview Prep'}`;
+
+    const prompt = `Generate a rigorous quiz with 5 multiple choice questions for a ${role} candidate ${context}. 
+    Ensure the questions are challenging and cover key concepts.
+    
+    For each question, provide:
+    - Question text
+    - 4 options (A, B, C, D)
+    - Correct answer
+    Format as ONLY a JSON array with objects containing: {question, options: [a,b,c,d], correctAnswer}`;
 
     let questions = [];
     try {
@@ -126,7 +143,7 @@ Format as JSON array with objects containing: {question, options: [a,b,c,d], cor
 
     const quiz = await Quiz.create({
       userId: req.userId,
-      role,
+      role: topic || role,
       questions: questions.length > 0 ? questions : generateMockQuestions(role),
       total: Math.max(questions.length, 5),
     });
@@ -147,17 +164,33 @@ const submitQuiz = async (req, res) => {
     }
 
     let score = 0;
+    let feedbackPrompt = `The user took a quiz on ${quiz.role} and scored ${score}/${quiz.total}. 
+    Here are the questions and their answers:
+    `;
+
     quiz.questions.forEach((q, index) => {
       q.userAnswer = userAnswers[index] || '';
-      if (q.correctAnswer.toLowerCase() === q.userAnswer.toLowerCase()) {
+      const isCorrect = q.correctAnswer.toLowerCase() === q.userAnswer.toLowerCase();
+      if (isCorrect) {
         score++;
       }
+      feedbackPrompt += `\nQ: ${q.question}\nCorrect Ans: ${q.correctAnswer}\nUser Ans: ${q.userAnswer}\nResult: ${isCorrect ? 'Correct' : 'Incorrect'}`;
     });
 
+    feedbackPrompt += `\n\nBased on these results, provide a brief, constructive "Area for Improvement" report (3-4 bullet points) to help the user master this topic.`;
+
+    let improvementSuggestions = "Keep practicing and review the core concepts of " + quiz.role;
+    try {
+      improvementSuggestions = await generateGroqContent(feedbackPrompt);
+    } catch (apiError) {
+      console.error('Feedback Gen Error:', apiError);
+    }
+
     quiz.score = score;
+    quiz.improvementSuggestions = improvementSuggestions;
     await quiz.save();
 
-    res.json({ message: 'Quiz submitted', score, total: quiz.total });
+    res.json({ message: 'Quiz submitted', score, total: quiz.total, improvementSuggestions });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export default function InterviewPrep() {
   const [role, setRole] = useState('');
@@ -19,8 +21,6 @@ export default function InterviewPrep() {
   const [result, setResult] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE_URL = 'https://ai-carrer-assistant.onrender.com/api';
-
   const getToken = () => localStorage.getItem('token');
 
   const handleGenerateTopics = async (e) => {
@@ -31,49 +31,32 @@ export default function InterviewPrep() {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/interview/topics`,
-        {
-          role,
-          jdText: jdText || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
+        { role, jdText: jdText || null },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setTopics(response.data.topics || []);
       setStep('topics');
     } catch (err) {
-      console.error('Error:', err.response?.data?.message || err.message);
-      alert('Error: ' + (err.response?.data?.message || err.message));
+      console.error('Error:', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectTopic = async (topic, difficulty) => {
-    setSelectedTopic({ topic, difficulty });
+  const handleSelectTopic = async (topic) => {
+    setSelectedTopic(topic);
     setLoading(true);
     try {
       const response = await axios.post(
         `${API_BASE_URL}/interview/topic-content`,
-        {
-          topic,
-          role,
-          difficulty,
-          jdText: jdText || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
+        { topic, role },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
       );
-      setCourseContent(response.data.content || response.data.courseModule.content);
+      setCourseContent(response.data.content);
       setStep('course');
+      window.scrollTo(0, 0);
     } catch (err) {
       console.error('Error:', err.message);
-      alert('Error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -84,16 +67,8 @@ export default function InterviewPrep() {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/interview/quiz`,
-        {
-          topic: selectedTopic.topic,
-          role,
-          difficulty: selectedTopic.difficulty,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
+        { topic: selectedTopic, role, content: courseContent },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setQuiz(response.data.quiz);
       setAnswers(Array(response.data.quiz.questions.length).fill(''));
@@ -102,27 +77,8 @@ export default function InterviewPrep() {
       setStep('quiz');
     } catch (err) {
       console.error('Error:', err.message);
-      alert('Error: ' + err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAnswerSelect = (option) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = option;
-    setAnswers(newAnswers);
-  };
-
-  const handleNext = () => {
-    if (currentQuestion < quiz.questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
     }
   };
 
@@ -131,357 +87,223 @@ export default function InterviewPrep() {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/interview/quiz/submit`,
-        {
-          quizId: quiz._id,
-          userAnswers: answers,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
+        { quizId: quiz._id, userAnswers: answers },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setResult(response.data);
       setSubmitted(true);
     } catch (err) {
       console.error('Error:', err.message);
-      alert('Error: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Quiz Result Screen
-  if (step === 'quiz' && submitted && result) {
+  // Render content with premium markdown-like styling
+  const renderContent = (content) => {
+    return content.split('\n').map((line, idx) => {
+      if (line.trim() === '') return <br key={idx} />;
+      if (line.startsWith('# ')) return <h1 key={idx} className="text-4xl font-bold text-indigo-900 mt-8 mb-4 border-b pb-2">{line.substring(2)}</h1>;
+      if (line.startsWith('## ')) return <h2 key={idx} className="text-2xl font-bold text-indigo-800 mt-6 mb-3">{line.substring(3)}</h2>;
+      if (line.startsWith('### ')) return <h3 key={idx} className="text-xl font-bold text-indigo-700 mt-4 mb-2">{line.substring(4)}</h3>;
+      if (line.startsWith('**')) return <p key={idx} className="font-semibold text-indigo-900 mb-2">{line.replace(/\*\*/g, '')}</p>;
+      if (line.trim().match(/^\d+\./)) return <p key={idx} className="ml-4 mb-2 text-slate-700"><span className="font-bold text-indigo-600">{line.split('.')[0]}.</span> {line.split('.').slice(1).join('.')}</p>;
+      if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
+        return <li key={idx} className="ml-6 mb-2 text-slate-700 list-disc">{line.replace(/^[-*]\s*/, '')}</li>;
+      }
+      return <p key={idx} className="text-slate-700 mb-4 leading-relaxed">{line}</p>;
+    });
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="card max-w-md w-full">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Quiz Completed! 🎉</h1>
-            <div className="text-6xl font-bold text-blue-600 mb-6">
-              {result.score}/{result.total}
-            </div>
-            <p className="text-2xl font-semibold text-gray-700 mb-4">
-              {result.percentage}% Score
-            </p>
-            <p className="text-lg text-gray-600 mb-8">{result.feedback}</p>
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setStep('course');
-                  setSubmitted(false);
-                }}
-                className="btn btn-secondary flex-1"
-              >
-                Back to Course
-              </button>
-              <button
-                onClick={() => {
-                  setStep('topics');
-                  setSelectedTopic(null);
-                  setCourseContent('');
-                }}
-                className="btn btn-primary flex-1"
-              >
-                Select Another Topic
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-indigo-600 font-medium animate-pulse">Generating your premium preparation material...</p>
       </div>
     );
   }
 
-  // Quiz Screen
-  if (step === 'quiz' && quiz && !submitted) {
-    const question = quiz.questions[currentQuestion];
-
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <h1 className="text-3xl font-bold text-gray-800">📝 Quiz</h1>
-            <p className="text-gray-600">
-              Question {currentQuestion + 1} of {quiz.questions.length}
-            </p>
+  return (
+    <div className="min-h-screen pb-20">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button onClick={() => step === 'input' ? navigate('/dashboard') : step === 'topics' ? setStep('input') : setStep('topics')} className="text-slate-500 hover:text-indigo-600 transition-colors">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            </button>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent italic">AI Interview Master</h1>
           </div>
-        </header>
+          {role && <div className="text-sm font-medium bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full">{role}</div>}
+        </div>
+      </nav>
 
-        <main className="max-w-4xl mx-auto px-6 py-12">
-          <div className="card">
-            <div className="mb-8">
-              <div className="bg-gray-200 h-2 rounded-full mb-4">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${((currentQuestion + 1) / quiz.questions.length) * 100}%`,
-                  }}
-                ></div>
-              </div>
+      <main className="max-w-4xl mx-auto px-6 mt-10">
+        {step === 'input' && (
+          <div className="animate-fade-in">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl font-bold text-slate-900 mb-4">Master Your Next Interview</h2>
+              <p className="text-slate-600 max-w-xl mx-auto">Get exhaustive "A to Z" preparation modules, top 50 questions, and interactive quizzes tailored to your target role.</p>
             </div>
-
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">{question.question}</h2>
-
-            <div className="space-y-3 mb-8">
-              {question.options.map((option, idx) => (
-                <label
-                  key={idx}
-                  className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    answers[currentQuestion] === option
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="answer"
-                    value={option}
-                    checked={answers[currentQuestion] === option}
-                    onChange={() => handleAnswerSelect(option)}
-                    className="mr-3"
+            
+            <div className="glass-card max-w-2xl mx-auto">
+              <form onSubmit={handleGenerateTopics} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Target Role</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Senior Software Engineer" 
+                    className="glass-input w-full text-lg"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                   />
-                  <span className="text-lg">{option}</span>
-                </label>
+                </div>
+                
+                <div className="pt-2">
+                  <button type="button" onClick={() => setShowJDUpload(!showJDUpload)} className="text-indigo-600 text-sm font-medium hover:text-indigo-700 flex items-center gap-1">
+                    {showJDUpload ? 'Remove Job Description' : '+ Add Job Description for better accuracy'}
+                  </button>
+                  {showJDUpload && (
+                    <textarea 
+                      placeholder="Paste the job description here..." 
+                      className="glass-input w-full mt-3 h-40 resize-none text-sm"
+                      value={jdText}
+                      onChange={(e) => setJdText(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <button type="submit" disabled={!role} className="btn-premium btn-premium-primary w-full text-lg">
+                  Generate Curriculum
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {step === 'topics' && (
+          <div className="animate-fade-in">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+              <span className="p-2 bg-indigo-100 rounded-lg text-indigo-600">📚</span>
+              Recommended Learning Path
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {topics.map((t, i) => (
+                <button key={i} onClick={() => handleSelectTopic(t)} className="glass-card text-left hover:border-indigo-400 group">
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">{t}</span>
+                    <span className="text-2xl opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">→</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">Comprehensive A-Z module with 50+ questions</p>
+                </button>
               ))}
             </div>
-
-            <div className="flex gap-4 justify-between">
-              <button
-                onClick={handlePrevious}
-                disabled={currentQuestion === 0}
-                className="btn btn-secondary"
-              >
-                ← Previous
-              </button>
-
-              {currentQuestion === quiz.questions.length - 1 ? (
-                <button
-                  onClick={handleSubmitQuiz}
-                  disabled={loading}
-                  className="btn btn-primary"
-                >
-                  {loading ? 'Submitting...' : 'Submit Quiz'}
+            
+            <div className="mt-10 pt-10 border-t border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">Want something specific?</h3>
+              <div className="flex gap-4">
+                <input 
+                  type="text" 
+                  placeholder="Enter any topic (e.g. System Design, React)" 
+                  className="glass-input flex-1"
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                />
+                <button onClick={() => handleSelectTopic(customTopic)} disabled={!customTopic} className="btn-premium btn-premium-accent whitespace-nowrap">
+                  Build Custom Module
                 </button>
-              ) : (
-                <button onClick={handleNext} className="btn btn-primary">
-                  Next →
-                </button>
-              )}
+              </div>
             </div>
           </div>
-        </main>
-      </div>
-    );
-  }
+        )}
 
-  // Course Content Step
-  if (step === 'course') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <button
-              onClick={() => setStep('topics')}
-              className="text-blue-600 font-bold hover:underline mb-2"
-            >
-              ← Back to Topics
-            </button>
-            <h1 className="text-3xl font-bold text-gray-800">📖 {selectedTopic?.topic}</h1>
-            <p className="text-gray-600">
-              {selectedTopic?.difficulty && selectedTopic.difficulty !== 'General' && (
-                <>{selectedTopic.difficulty} Level | </>
-              )}Role: {role}
-            </p>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-6 py-12">
-          <div className="card mb-8">
-            <div className="prose prose-sm max-w-none mb-8">
-              {courseContent.split('\n').map((line, idx) => {
-                if (line.trim() === '') return null;
-                if (line.includes('###')) {
-                  return (
-                    <h3 key={idx} className="text-lg font-bold text-blue-600 mt-4">
-                      {line.replace(/###/g, '').trim()}
-                    </h3>
-                  );
-                }
-                if (line.includes('##')) {
-                  return (
-                    <h2 key={idx} className="text-xl font-bold text-gray-800 mt-4">
-                      {line.replace(/##/g, '').trim()}
-                    </h2>
-                  );
-                }
-                if (line.trim().startsWith('-') || line.trim().startsWith('*')) {
-                  return (
-                    <li key={idx} className="text-gray-700 ml-4">
-                      {line.replace(/^[-*]\s/, '').trim()}
-                    </li>
-                  );
-                }
-                return (
-                  <p key={idx} className="text-gray-700 whitespace-pre-wrap">
-                    {line}
-                  </p>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={handleStartQuiz}
-              disabled={loading}
-              className="btn btn-primary w-full"
-            >
-              {loading ? 'Generating Quiz...' : '✓ Completed! Start Quiz (15-20 questions)'}
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Topics Selection Step
-  if (step === 'topics') {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <button
-              onClick={() => setStep('input')}
-              className="text-blue-600 font-bold hover:underline mb-2"
-            >
-              ← Back
-            </button>
-            <h1 className="text-3xl font-bold text-gray-800">📚 Select Topics to Study</h1>
-            <p className="text-gray-600">Role: {role}</p>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-6 py-12">
-          {topics && topics.length > 0 ? (
-            <div className="space-y-8">
-              {typeof topics[0] === 'string' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {topics.map((topic, tIdx) => (
-                    <button
-                      key={tIdx}
-                      onClick={() => handleSelectTopic(topic, 'General')}
-                      disabled={loading}
-                      className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
-                    >
-                      <p className="font-semibold text-gray-800">{topic}</p>
-                    </button>
-                  ))}
+        {step === 'course' && (
+          <div className="animate-fade-in max-w-3xl mx-auto">
+            <div className="glass-card mb-10 overflow-hidden !p-0">
+              <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-8 text-white">
+                <span className="text-indigo-200 text-sm font-bold tracking-widest uppercase">Intensive Module</span>
+                <h2 className="text-3xl font-bold mt-2">{selectedTopic}</h2>
+              </div>
+              <div className="p-8 prose-premium">
+                {renderContent(courseContent)}
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-slate-200">
+                <div className="bg-indigo-900 text-white p-6 rounded-2xl flex items-center justify-between gap-6">
+                  <div>
+                    <h4 className="text-xl font-bold">Ready to test your knowledge?</h4>
+                    <p className="text-indigo-200 text-sm mt-1">Take a personalized quiz based on the 50 questions and content above.</p>
+                  </div>
+                  <button onClick={handleStartQuiz} className="btn-premium bg-white text-indigo-900 hover:bg-slate-100 whitespace-nowrap">
+                    Start Assessment
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-8">
-                  {topics.map((levelGroup, idx) => (
-                    <div key={idx} className="card">
-                      <h2 className="text-2xl font-bold mb-4 text-blue-600">{levelGroup.level} Level</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {levelGroup.topics &&
-                          levelGroup.topics.map((topic, tIdx) => (
-                            <button
-                              key={tIdx}
-                              onClick={() => handleSelectTopic(topic, levelGroup.level)}
-                              disabled={loading}
-                              className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition-all text-left"
-                            >
-                              <p className="font-semibold text-gray-800">{topic}</p>
-                              <p className="text-sm text-gray-500">{levelGroup.level} difficulty</p>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 py-12">
-              <p>No topics generated. Please try again.</p>
-            </div>
-          )}
-
-          {/* Custom Topic Section */}
-          <div className="card mt-8">
-            <h2 className="text-2xl font-bold mb-4 text-blue-600">Or Enter Your Own Topic</h2>
-            <div className="flex gap-4">
-              <input
-                type="text"
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="Enter a custom topic (e.g., React Hooks, SQL Joins)"
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={() => handleSelectTopic(customTopic, 'Custom')}
-                disabled={loading || !customTopic.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Generating...' : 'Generate Content'}
-              </button>
+              </div>
             </div>
           </div>
-        </main>
-      </div>
-    );
-  }
+        )}
 
-  // Input Step
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-blue-600 font-bold hover:underline mb-2"
-          >
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-3xl font-bold text-gray-800">🎓 Interview Preparation</h1>
-        </div>
-      </header>
+        {step === 'quiz' && !submitted && (
+          <div className="animate-fade-in max-w-2xl mx-auto text-center">
+            <div className="mb-8">
+              <span className="text-indigo-600 font-bold uppercase tracking-widest text-xs">Self-Assessment</span>
+              <h2 className="text-2xl font-bold text-slate-900 mt-2">Question {currentQuestion + 1} of {quiz?.questions.length}</h2>
+            </div>
+            
+            <div className="glass-card text-left">
+              <p className="text-xl font-bold text-slate-800 mb-8">{quiz?.questions[currentQuestion].question}</p>
+              <div className="space-y-4">
+                {quiz?.questions[currentQuestion].options.map((opt, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => {
+                      const newAns = [...answers];
+                      newAns[currentQuestion] = opt;
+                      setAnswers(newAns);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                      answers[currentQuestion] === opt 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm shadow-indigo-200' 
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="inline-block w-8 font-bold">{String.fromCharCode(65 + i)}.</span> {opt}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex justify-between mt-10">
+                <button disabled={currentQuestion === 0} onClick={() => setCurrentQuestion(v => v -1)} className="text-slate-500 font-bold hover:text-indigo-600 disabled:opacity-30">Previous</button>
+                {currentQuestion === quiz.questions.length - 1 ? (
+                  <button onClick={handleSubmitQuiz} className="btn-premium btn-premium-primary">Submit Final Answers</button>
+                ) : (
+                  <button onClick={() => setCurrentQuestion(v => v + 1)} className="btn-premium btn-premium-primary">Next Question</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-      <main className="max-w-3xl mx-auto px-6 py-12">
-        <div className="card">
-          <form onSubmit={handleGenerateTopics} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Enter job role (e.g., Data Analyst, Software Engineer)"
-              className="input-field"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            />
+        {step === 'quiz' && submitted && (
+          <div className="animate-fade-in max-w-2xl mx-auto">
+            <div className="glass-card text-center p-12">
+              <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">🏆</div>
+              <h2 className="text-3xl font-bold text-slate-900">Quiz Results</h2>
+              <div className="text-6xl font-black text-indigo-600 my-6">{result?.score} <span className="text-2xl text-slate-400 font-medium">/ {result?.total}</span></div>
+              
+              <div className="text-left bg-indigo-50 border border-indigo-100 p-6 rounded-2xl mb-8">
+                <h4 className="font-bold text-indigo-900 mb-3">Improvement Analysis</h4>
+                <div className="text-sm text-indigo-800 prose prose-sm max-w-none">
+                  {renderContent(result?.improvementSuggestions || 'Keep practicing!')}
+                </div>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setShowJDUpload(!showJDUpload)}
-              className="btn btn-secondary w-full"
-            >
-              {showJDUpload ? '✕ Hide' : '+ Paste Job Description (Recommended)'}
-            </button>
-
-            {showJDUpload && (
-              <textarea
-                placeholder="Paste the job description for personalized topic recommendations..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-40 resize-none"
-                value={jdText}
-                onChange={(e) => setJdText(e.target.value)}
-              />
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || !role.trim()}
-              className="btn btn-primary w-full"
-            >
-              {loading ? 'Generating Topics...' : 'Generate Interview Topics'}
-            </button>
-          </form>
-        </div>
+              <div className="flex gap-4">
+                <button onClick={() => setStep('course')} className="btn-premium btn-premium-secondary flex-1">Back to Content</button>
+                <button onClick={() => setStep('topics')} className="btn-premium btn-premium-primary flex-1">Try Another Topic</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

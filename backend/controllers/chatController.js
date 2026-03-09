@@ -47,52 +47,87 @@ const askBot = async (req, res) => {
       });
     }
 
-    // Get recent conversation history (last 5 messages)
+    // Get recent conversation history (last 3 messages)
     const recentMessages = await ChatMessage.find({ userId })
       .sort({ timestamp: -1 })
-      .limit(5)
-      .sort({ timestamp: 1 }); // Re-sort to chronological order
+      .limit(3)
+      .sort({ timestamp: 1 });
 
-    // Build conversation context
-    let conversationContext = '';
-    if (recentMessages.length > 0) {
-      conversationContext = '\n\nRecent conversation:\n' +
-        recentMessages.map(msg => `User: ${msg.question}\nAssistant: ${msg.answer}`).join('\n\n');
-    }
+    // Build structured messages for OpenRouter/Groq
+    const systemPrompt = `You are a Professional AI Career Coach. 
+Requirements:
+- Only answer career-related questions (resumes, interviews, job search, professional growth).
+- Use **bold** for emphasis.
+- Use bullet points for lists.
+- Be extremely concise and professional.
+- No filler or conversational fluff unless it's a greeting.
+- If a question is not career-related, politely decline and steer back to careers.`;
 
-    const prompt = `You are an expert career coach and professional development advisor. You have access to current industry knowledge and can provide detailed, practical advice.
+    const messages = [
+      { role: 'system', content: systemPrompt }
+    ];
 
-Current question: "${question}"${conversationContext}
+    // Add conversation history
+    recentMessages.forEach(msg => {
+      messages.push({ role: 'user', content: msg.question });
+      messages.push({ role: 'assistant', content: msg.answer });
+    });
 
-Provide a comprehensive, helpful response that:
-1. Directly addresses the user's question
-2. Includes specific, actionable advice
-3. References relevant industry trends or best practices when applicable
-4. Offers follow-up questions or next steps
-5. Maintains conversation continuity if this is part of an ongoing discussion
+    // Add current question
+    messages.push({ role: 'user', content: question });
 
-Keep responses engaging, professional, and focused on career advancement. Be specific and provide real value.`;
+    // Build contents for Gemini-style APIs
+    const geminiContents = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      { role: 'model', parts: [{ text: "Understood. I will act as a Professional AI Career Coach with the specified requirements." }] }
+    ];
+    recentMessages.forEach(msg => {
+      geminiContents.push({ role: 'user', parts: [{ text: msg.question }] });
+      geminiContents.push({ role: 'model', parts: [{ text: msg.answer }] });
+    });
+    geminiContents.push({ role: 'user', parts: [{ text: question }] });
 
-    let answer;
+    let answer = '';
     try {
-      answer = await generateOpenRouterContent(prompt);
+      console.log('Fetching AI response...');
+      // Use messages for OpenRouter/Groq, contents for Gemini
+      answer = await generateOpenRouterContent(messages);
+      if (!answer) throw new Error('Empty response from OpenRouter');
     } catch (apiError) {
-      console.error('OpenRouter API Error:', apiError.message);
+      console.error('OpenRouter Failure:', apiError.message);
       try {
-        answer = await generateGroqContent(prompt);
+        answer = await generateGroqContent(messages);
+        if (!answer) throw new Error('Empty response from Groq');
       } catch (groqError) {
-        console.error('Groq API Error:', groqError.message);
-        answer = generateMockResponse(question);
+        console.error('Groq Failure:', groqError.message);
+        try {
+          // Gemini as a third fallback
+          const { generateContent: generateGeminiContent } = require('../utils/geminiService');
+          answer = await generateGeminiContent(geminiContents);
+        } catch (geminiError) {
+          console.error('Gemini Failure:', geminiError.message);
+          answer = generateMockResponse(question);
+        }
       }
     }
 
-    // Save the conversation to database
-    const chatMessage = await ChatMessage.create({
-      userId,
-      question,
-      answer,
-      isCareerRelated: true,
-    });
+    // Ensure answer is a string and not empty
+    answer = String(answer || generateMockResponse(question));
+
+    // Save with error protection
+    let chatMessage;
+    try {
+      chatMessage = await ChatMessage.create({
+        userId,
+        question,
+        answer,
+        isCareerRelated: true,
+      });
+    } catch (dbError) {
+      console.error('Database Save Error:', dbError.message);
+      // Fallback message object for response
+      chatMessage = { timestamp: new Date(), _id: 'temp-id' };
+    }
 
     res.json({
       question,

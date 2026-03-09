@@ -34,7 +34,7 @@ const searchJobsWithFilters = async (req, res) => {
       salaryMax,
       experience,
       company,
-    });
+    }, userSkills);
 
     res.json({
       jobs,

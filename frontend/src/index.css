@@ -1,6 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #ec4899;
+  --accent: #8b5cf6;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
 
 * {
   margin: 0;
@@ -9,26 +21,97 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  @apply bg-gray-50;
+  font-family: 'Inter', sans-serif;
+  @apply bg-slate-50 text-slate-900;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.05) 0px, transparent 50%);
+  min-height: 100vh;
 }
 
-.btn {
-  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
 }
 
-.btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700;
+/* Glassmorphism Components */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  @apply rounded-2xl p-6 transition-all duration-300;
 }
 
-.btn-secondary {
-  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+.glass-card:hover {
+  @apply shadow-lg border-opacity-50;
+  transform: translateY(-2px);
 }
 
-.card {
-  @apply bg-white rounded-lg shadow-md p-6;
+.glass-input {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(4px);
+  @apply border border-white/40 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-indigo-400 focus:outline-none transition-all;
 }
 
-.input-field {
-  @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
+/* Premium Buttons */
+.btn-premium {
+  @apply px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 active:scale-95 flex items-center justify-center gap-2;
+  box-shadow: 0 4px 15px -1px rgba(99, 102, 241, 0.3);
+}
+
+.btn-premium-primary {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/40;
+}
+
+.btn-premium-secondary {
+  @apply bg-white text-slate-800 border border-slate-200 hover:bg-slate-50;
+}
+
+.btn-premium-accent {
+  @apply bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-indigo-200 rounded-full hover:bg-indigo-300 transition-colors;
+}
+
+/* Markdown Content Styling */
+.prose-premium {
+  @apply leading-relaxed;
+}
+
+.prose-premium h1, .prose-premium h2, .prose-premium h3 {
+  @apply text-indigo-900 mt-6 mb-3;
+}
+
+.prose-premium p {
+  @apply mb-4 text-slate-700;
+}
+
+.prose-premium ul {
+  @apply list-disc ml-6 mb-4 space-y-2;
+}
+
+.prose-premium strong {
+  @apply text-indigo-700 font-semibold;
 }
