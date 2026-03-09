@@ -1,4 +1,4 @@
-# AI Career Assistant - Advanced Version
+# AI Career Assistant 
 
 A powerful full-stack MERN application that helps users with career development using AI (Gemini API + JSsearch API).
 
