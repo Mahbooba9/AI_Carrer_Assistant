@@ -106,7 +106,7 @@ const generateTopicContent = async (req, res) => {
       content = await generateGroqContent(messages, 'llama3-70b-8192');
     } catch (apiError) {
       console.error('API Error:', apiError.message);
-      content = `**${topic} for ${role}**\n\nFallback: Extensive content generation failed. Please try again. ${topic} involves understanding the fundamentals of ${role} requirements.`;
+      content = `**${topic} for ${role}**\n\nERROR: ${apiError.message}. Fallback triggered. Please check if your GROQ_API_KEY has access to the model.`;
     }
 
     res.json({ content, topic, role });
@@ -151,7 +151,10 @@ const generateQuiz = async (req, res) => {
       total: Math.max(questions.length, 5),
     });
 
-    res.json({ quiz });
+    res.json({ 
+      quiz,
+      debugError: questions.length === 0 ? 'Questions array was empty, used mock data' : null
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
