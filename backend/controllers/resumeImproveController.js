@@ -47,29 +47,37 @@ const improveResumeWithJD = async (req, res) => {
     }
 
     // Generate improvements based on resume and JD (or just role)
-    const prompt = `You are an expert ATS (Applicant Tracking System) Scanner and Career Strategist. 
+    const prompt = `You are a world-class ATS (Applicant Tracking System) Scanner and Professional Resume Auditor. 
 
-Analyze the provided resume ${jdText ? 'against the specific job description' : `to benchmark it for the target role: "${role}"`}.
+Analyze the provided resume ${jdText ? 'against the following job description' : `to benchmark it for the target role: "${role}"`}.
 
 Resume Content:
 ${resume.resumeText}
 
 ${jdText ? `Job Description:
-${jdText}` : `Target Role Strategy:
-Perform a deep analysis of this resume based on current industry standards and expectations for a ${role} position. Identify missing technical skills and keywords that are typically required for this role.`}
+${jdText}` : `Target Role Benchmark:
+Perform a deep analysis of this resume based on industry standards for a ${role} position. Identify critical technical skills, certifications, and industry keywords that are typically expected.`}
 
-Provide your analysis in **STRICT JSON format** with the following keys:
+Provide a high-quality, professional analysis in **STRICT JSON format**. Ensure the match percentage is realistic based on the content.
+
+Structure:
 {
-  "matchPercentage": (number between 0-100),
-  "matchSummary": (2-3 sentences max summarizing the fit),
-  "matchingSkills": [array of skills found in both resume and requirements/standards],
-  "missingTechnicalSkills": [array of key technical skills missing for this role],
-  "missingSoftSkills": [array of soft skills missing],
+  "matchPercentage": (number),
+  "matchSummary": (detailed 2-3 sentence overview),
+  "matchingSkills": [array],
+  "missingTechnicalSkills": [array],
+  "missingSoftSkills": [array],
   "missingKeywords": [
-    {"keyword": "example", "reason": "why it is critical"}
+    {"keyword": "example", "reason": "why critical"}
   ],
+  "categoryScores": {
+    "keywordMatch": (0-100),
+    "formatting": (0-100),
+    "contentImpact": (0-100)
+  },
+  "formattingTips": [array of design/structure improvements],
   "educationMatch": (short statement on qualification alignment),
-  "improvementSummary": (detailed markdown bullet points with 3-4 strategic advice items)
+  "improvementSummary": (Markdown bullet points with specific, actionable advice to reach 90%+ match)
 }
 
 Return ONLY the JSON.`;

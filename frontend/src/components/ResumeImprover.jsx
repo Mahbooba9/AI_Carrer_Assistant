@@ -135,9 +135,9 @@ export default function ResumeScanner() {
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Efficiency: A+</span>
                   </div>
                   
-                  <div className="space-y-2 mb-8">
+                  <div className="space-y-4 mb-8">
                     <div className="flex justify-between text-sm font-bold text-slate-700">
-                      <span>Match Percentage</span>
+                      <span>Overall Match</span>
                       <span className={`${results.matchPercentage > 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{results.matchPercentage}%</span>
                     </div>
                     <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden">
@@ -147,6 +147,18 @@ export default function ResumeScanner() {
                       ></div>
                     </div>
                   </div>
+
+                  {/* Category Scores */}
+                  {results.categoryScores && (
+                    <div className="grid grid-cols-3 gap-4 mb-8">
+                      {Object.entries(results.categoryScores).map(([key, score], idx) => (
+                        <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{key.replace(/([A-Z])/g, ' $1')}</p>
+                          <p className={`text-lg font-black ${score > 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{score}%</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
                     <p className="text-indigo-900 text-sm font-medium leading-relaxed italic">
@@ -163,7 +175,7 @@ export default function ResumeScanner() {
                        Matching Skills
                     </h3>
                     <div className="space-y-3">
-                      {results.matchingSkills.map((skill, i) => (
+                      {results.matchingSkills?.map((skill, i) => (
                         <div key={i} className="flex items-center gap-2 text-sm text-slate-700 font-medium animate-fade-in" style={{animationDelay: `${i * 0.1}s`}}>
                           <span className="text-emerald-500 font-bold text-lg">✓</span> {skill}
                         </div>
@@ -177,7 +189,7 @@ export default function ResumeScanner() {
                        Missing Technical Skills
                     </h3>
                     <div className="space-y-3">
-                      {results.missingTechnicalSkills.map((skill, i) => (
+                      {results.missingTechnicalSkills?.map((skill, i) => (
                         <div key={i} className="flex items-center gap-2 text-sm text-slate-700 font-medium animate-fade-in" style={{animationDelay: `${i * 0.1}s`}}>
                           <span className="text-rose-500 font-bold text-lg">✕</span> {skill}
                         </div>
@@ -186,12 +198,12 @@ export default function ResumeScanner() {
                   </div>
                 </div>
 
-                {/* Soft Skills & Keywords */}
+                {/* Extra Insights */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="glass-card">
                     <h3 className="text-sm font-black text-slate-900 mb-4">Missing Soft Skills</h3>
                     <div className="space-y-3">
-                      {results.missingSoftSkills.map((skill, i) => (
+                      {results.missingSoftSkills?.map((skill, i) => (
                         <div key={i} className="flex items-center gap-2 text-sm text-slate-700 font-medium">
                           <span className="text-rose-500 font-bold text-lg">✕</span> {skill}
                         </div>
@@ -207,25 +219,40 @@ export default function ResumeScanner() {
                   </div>
                 </div>
 
-                {/* Keyword Analysis */}
-                <div className="glass-card">
-                  <h3 className="text-sm font-black text-slate-900 mb-4">Missing Keywords & Reason</h3>
-                  <div className="space-y-4">
-                    {results.missingKeywords.map((item, i) => (
-                      <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
-                        <span className="text-rose-500 font-bold text-xl h-8 w-8 flex items-center justify-center bg-white rounded-lg shadow-sm">✕</span>
-                        <div>
-                          <p className="font-bold text-rose-600 uppercase text-xs tracking-widest">{item.keyword}</p>
-                          <p className="text-sm text-slate-600 mt-1 font-medium">{item.reason}</p>
+                {/* Analysis Sections (Keywords & Layout) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Keyword Analysis */}
+                  <div className="glass-card">
+                    <h3 className="text-sm font-black text-slate-900 mb-4">Keyword Analysis</h3>
+                    <div className="space-y-4">
+                      {results.missingKeywords?.map((item, i) => (
+                        <div key={i} className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                          <span className="text-rose-500 font-bold text-xl h-8 w-8 flex items-center justify-center bg-white rounded-lg shadow-sm">✕</span>
+                          <div>
+                            <p className="font-bold text-rose-600 uppercase text-xs tracking-widest">{item.keyword}</p>
+                            <p className="text-sm text-slate-600 mt-1 font-medium">{item.reason}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Formatting Tips */}
+                  <div className="glass-card">
+                    <h3 className="text-sm font-black text-slate-900 mb-4">Formatting & Design</h3>
+                    <div className="space-y-3">
+                      {results.formattingTips?.map((tip, i) => (
+                        <div key={i} className="flex items-center gap-3 text-sm text-slate-700 font-medium bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
+                          <span className="text-indigo-500 font-bold">✨</span> {tip}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Strategic Advice */}
                 <div className="glass-card border-l-4 border-l-indigo-600">
-                  <h3 className="text-xl font-bold text-slate-900 mb-4">Summary to Improve</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-4">Strategic Improvement Summary</h3>
                   <div className="prose-premium text-sm leading-relaxed">
                     {renderImprovementSummary(results.improvementSummary)}
                   </div>
