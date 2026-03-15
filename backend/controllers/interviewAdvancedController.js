@@ -1,10 +1,4 @@
-const Quiz = require('../models/Quiz');
-const CourseModule = require('../models/CourseModule');
-const QuizQuestion = require('../models/QuizQuestion');
-const Resume = require('../models/Resume');
-const JobDescription = require('../models/JobDescription');
 const { generateContent: generateGroqContent } = require('../utils/groqService');
-const { generateContent: generateOpenRouterContent } = require('../utils/openRouterService');
 
 const generateInterviewTopics = async (req, res) => {
   try {
@@ -52,7 +46,7 @@ ADVANCE:
 - Topic 1
 ...`;
 
-    const topicsResponse = await generateGroqContent(prompt);
+    const topicsResponse = await generateGroqContent([{ role: 'user', content: prompt }]);
     const topics = parseTopics(topicsResponse);
 
     res.json({
@@ -98,7 +92,7 @@ Include detailed explanations for each concept:
 
 Make it detailed and beginner-friendly if Beginner level, intermediate if Intermediate, advanced if Advance. Ensure content is tailored to the ${role} role.`;
 
-    const content = await generateOpenRouterContent(prompt);
+    const content = await generateGroqContent([{ role: 'user', content: prompt }]);
 
     // Save course module
     const courseModule = await CourseModule.create({

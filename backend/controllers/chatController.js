@@ -1,6 +1,4 @@
-const ChatMessage = require('../models/ChatMessage');
 const { generateContent: generateGroqContent } = require('../utils/groqService');
-const { generateContent: generateOpenRouterContent } = require('../utils/openRouterService');
 
 const RESTRICTED_TOPICS = ['movie', 'film', 'actor', 'actress', 'cricket', 'sports', 'game', 'politics', 'celebrity', 'entertainment'];
 
@@ -89,26 +87,12 @@ Requirements:
 
     let answer = '';
     try {
-      console.log('Fetching AI response...');
-      // Use messages for OpenRouter/Groq, contents for Gemini
-      answer = await generateOpenRouterContent(messages);
-      if (!answer) throw new Error('Empty response from OpenRouter');
+      console.log('Fetching AI response via Groq...');
+      answer = await generateGroqContent(messages);
+      if (!answer) throw new Error('Empty response from Groq');
     } catch (apiError) {
-      console.error('OpenRouter Failure:', apiError.message);
-      try {
-        answer = await generateGroqContent(messages);
-        if (!answer) throw new Error('Empty response from Groq');
-      } catch (groqError) {
-        console.error('Groq Failure:', groqError.message);
-        try {
-          // Gemini as a third fallback
-          const { generateContent: generateGeminiContent } = require('../utils/geminiService');
-          answer = await generateGeminiContent(geminiContents);
-        } catch (geminiError) {
-          console.error('Gemini Failure:', geminiError.message);
-          answer = generateMockResponse(question);
-        }
-      }
+      console.error('Groq Failure:', apiError.message);
+      answer = generateMockResponse(question);
     }
 
     // Ensure answer is a string and not empty

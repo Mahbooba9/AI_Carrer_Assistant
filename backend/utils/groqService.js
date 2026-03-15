@@ -10,7 +10,7 @@ const generateContent = async (messages, model = 'llama3-8b-8192') => {
       {
         model,
         messages,
-        max_tokens: 500,
+        max_tokens: 3000,
       },
       {
         headers: {

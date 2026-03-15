@@ -1,6 +1,5 @@
-const Resume = require('../models/Resume');
 const JobDescription = require('../models/JobDescription');
-const { generateContent } = require('../utils/geminiService');
+const { generateContent } = require('../utils/groqService');
 
 const getMockImprovements = (role, jdBased) => {
   const improvements = [];
@@ -46,22 +45,24 @@ const improveResumeWithJD = async (req, res) => {
       });
     }
 
-    // Generate improvements based on resume and JD
+    // Generate improvements based on resume and JD (or just role)
     const prompt = `You are an expert ATS (Applicant Tracking System) Scanner and Career Strategist. 
-Analyze the provided resume against the ${role ? `target role "${role}"` : 'job description'}.
+
+Analyze the provided resume ${jdText ? 'against the specific job description' : `to benchmark it for the target role: "${role}"`}.
 
 Resume Content:
 ${resume.resumeText}
 
 ${jdText ? `Job Description:
-${jdText}` : ''}
+${jdText}` : `Target Role Strategy:
+Perform a deep analysis of this resume based on current industry standards and expectations for a ${role} position. Identify missing technical skills and keywords that are typically required for this role.`}
 
 Provide your analysis in **STRICT JSON format** with the following keys:
 {
   "matchPercentage": (number between 0-100),
   "matchSummary": (2-3 sentences max summarizing the fit),
-  "matchingSkills": [array of skills found in both resume and requirements],
-  "missingTechnicalSkills": [array of key technical skills missing],
+  "matchingSkills": [array of skills found in both resume and requirements/standards],
+  "missingTechnicalSkills": [array of key technical skills missing for this role],
   "missingSoftSkills": [array of soft skills missing],
   "missingKeywords": [
     {"keyword": "example", "reason": "why it is critical"}
@@ -74,8 +75,8 @@ Return ONLY the JSON.`;
 
     let scannerResults;
     try {
-      const contents = [{ role: 'user', parts: [{ text: prompt }] }];
-      const resultText = await generateContent(contents);
+      const messages = [{ role: 'user', content: prompt }];
+      const resultText = await generateContent(messages);
       // Clean resultText case there are markdown backticks
       const cleanedJson = resultText.replace(/```json|```/g, '').trim();
       scannerResults = JSON.parse(cleanedJson);

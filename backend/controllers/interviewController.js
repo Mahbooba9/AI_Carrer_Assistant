@@ -1,6 +1,4 @@
-const Quiz = require('../models/Quiz');
 const { generateContent: generateGroqContent } = require('../utils/groqService');
-const { generateContent: generateOpenRouterContent } = require('../utils/openRouterService');
 
 const getMockTopics = (role) => {
   const topicMap = {
@@ -103,7 +101,7 @@ const generateTopicContent = async (req, res) => {
     let content;
     try {
       const messages = [{ role: 'user', content: prompt }];
-      content = await generateOpenRouterContent(messages);
+      content = await generateGroqContent(messages);
     } catch (apiError) {
       console.error('API Error:', apiError.message);
       content = `**${topic} for ${role}**\n\nFallback: Extensive content generation failed. Please try again. ${topic} involves understanding the fundamentals of ${role} requirements.`;
