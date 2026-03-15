@@ -61,7 +61,7 @@ const generateInterviewTopics = async (req, res) => {
     let topics = [];
     try {
       const messages = [{ role: 'user', content: prompt }];
-      const topicsText = await generateGroqContent(messages, 'llama3-70b-8192');
+      const topicsText = await generateGroqContent(messages, 'llama3-8b-8192');
       const jsonMatch = topicsText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         topics = JSON.parse(jsonMatch[0]);
@@ -103,7 +103,7 @@ const generateTopicContent = async (req, res) => {
     let content;
     try {
       const messages = [{ role: 'user', content: prompt }];
-      content = await generateGroqContent(messages, 'llama3-70b-8192');
+      content = await generateGroqContent(messages, 'llama3-8b-8192');
     } catch (apiError) {
       console.error('API Error:', apiError.message);
       content = `**${topic} for ${role}**\n\nERROR: ${apiError.message}. Fallback triggered. Please check if your GROQ_API_KEY has access to the model.`;
@@ -137,7 +137,7 @@ const generateQuiz = async (req, res) => {
     let questions = [];
     try {
       const messages = [{ role: 'user', content: prompt }];
-      const quizData = await generateGroqContent(messages, 'llama3-70b-8192');
+      const quizData = await generateGroqContent(messages, 'llama3-8b-8192');
       questions = parseQuizData(quizData);
     } catch (apiError) {
       console.error('API Error:', apiError.message);
