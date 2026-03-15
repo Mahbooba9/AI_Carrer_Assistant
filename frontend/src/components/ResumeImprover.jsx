@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import api from '../services/api';
 
 export default function ResumeScanner() {
   const [role, setRole] = useState('');
@@ -19,11 +17,9 @@ export default function ResumeScanner() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/resume/improve`,
-        { role, jdText: jdText || null },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await api.post(
+        '/resume/improve',
+        { role, jdText: jdText || null }
       );
       setResults(response.data.scannerResults);
       setCurrentSkills(response.data.currentSkills || []);

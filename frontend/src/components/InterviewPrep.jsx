@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import api from '../services/api';
 
 export default function InterviewPrep() {
   const [role, setRole] = useState('');
@@ -29,10 +27,9 @@ export default function InterviewPrep() {
 
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/interview/topics`,
-        { role, jdText: jdText || null },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
+      const response = await api.post(
+        '/interview/topics',
+        { role, jdText: jdText || null }
       );
       setTopics(response.data.topics || []);
       setStep('topics');
@@ -47,10 +44,9 @@ export default function InterviewPrep() {
     setSelectedTopic(topic);
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/interview/topic-content`,
-        { topic, role },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
+      const response = await api.post(
+        '/interview/topic-content',
+        { topic, role }
       );
       setCourseContent(response.data.content);
       setStep('course');
@@ -65,10 +61,9 @@ export default function InterviewPrep() {
   const handleStartQuiz = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/interview/quiz`,
-        { topic: selectedTopic, role, content: courseContent },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
+      const response = await api.post(
+        '/interview/quiz',
+        { topic: selectedTopic, role, content: courseContent }
       );
       setQuiz(response.data.quiz);
       setAnswers(Array(response.data.quiz.questions.length).fill(''));
@@ -85,10 +80,9 @@ export default function InterviewPrep() {
   const handleSubmitQuiz = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/interview/quiz/submit`,
-        { quizId: quiz._id, userAnswers: answers },
-        { headers: { Authorization: `Bearer ${getToken()}` } }
+      const response = await api.post(
+        '/interview/quiz/submit',
+        { quizId: quiz._id, userAnswers: answers }
       );
       setResult(response.data);
       setSubmitted(true);

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:5000/api';
+import api from '../services/api';
 
 export default function JobSearch() {
   const [jobTitle, setJobTitle] = useState('');
@@ -26,9 +24,8 @@ export default function JobSearch() {
     setSearched(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_BASE_URL}/jobs/search`,
+      const response = await api.post(
+        '/jobs/search',
         {
           jobTitle,
           location,
@@ -37,12 +34,6 @@ export default function JobSearch() {
           experience: experience || null,
           company: company || null,
           skills: skills ? skills.split(',').map(s => s.trim()) : null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
         }
       );
 
