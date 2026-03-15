@@ -50,7 +50,7 @@ ADVANCE:
 - Topic 1
 ...`;
 
-    const topicsResponse = await generateGroqContent([{ role: 'user', content: prompt }]);
+    const topicsResponse = await generateGroqContent([{ role: 'user', content: prompt }], 'llama3-70b-8192');
     const topics = parseTopics(topicsResponse);
 
     res.json({
@@ -96,7 +96,7 @@ Include detailed explanations for each concept:
 
 Make it detailed and beginner-friendly if Beginner level, intermediate if Intermediate, advanced if Advance. Ensure content is tailored to the ${role} role.`;
 
-    const content = await generateGroqContent([{ role: 'user', content: prompt }]);
+    const content = await generateGroqContent([{ role: 'user', content: prompt }], 'llama3-70b-8192');
 
     // Save course module
     const courseModule = await CourseModule.create({
@@ -149,7 +149,7 @@ Return as JSON array with this format:
   }
 ]`;
 
-    const quizDataText = await generateGroqContent(prompt);
+    const quizDataText = await generateGroqContent([{ role: 'user', content: prompt }], 'llama3-70b-8192');
     let questions = [];
 
     try {
