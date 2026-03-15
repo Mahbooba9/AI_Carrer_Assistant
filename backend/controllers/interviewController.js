@@ -1,4 +1,5 @@
 const { generateContent: generateGroqContent } = require('../utils/groqService');
+const Quiz = require('../models/Quiz');
 
 const getMockTopics = (role) => {
   const topicMap = {

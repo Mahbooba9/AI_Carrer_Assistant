@@ -1,4 +1,8 @@
 const { generateContent: generateGroqContent } = require('../utils/groqService');
+const Resume = require('../models/Resume');
+const CourseModule = require('../models/CourseModule');
+const QuizQuestion = require('../models/QuizQuestion');
+const Quiz = require('../models/Quiz');
 
 const generateInterviewTopics = async (req, res) => {
   try {

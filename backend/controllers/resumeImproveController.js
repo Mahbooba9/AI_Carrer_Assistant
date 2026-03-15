@@ -1,4 +1,5 @@
 const JobDescription = require('../models/JobDescription');
+const Resume = require('../models/Resume');
 const { generateContent } = require('../utils/groqService');
 
 const getMockImprovements = (role, jdBased) => {

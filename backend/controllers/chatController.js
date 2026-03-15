@@ -1,4 +1,5 @@
 const { generateContent: generateGroqContent } = require('../utils/groqService');
+const ChatMessage = require('../models/ChatMessage');
 
 const RESTRICTED_TOPICS = ['movie', 'film', 'actor', 'actress', 'cricket', 'sports', 'game', 'politics', 'celebrity', 'entertainment'];
 
